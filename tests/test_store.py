@@ -2,6 +2,7 @@ import pytest
 
 from command_book import store
 from command_book.models import Command
+from command_book.store import _validate_key, _validate_new_key
 
 
 @pytest.fixture(autouse=True)
@@ -56,3 +57,33 @@ def test_save_overwrites():
     loaded = store.load_one("dup")
     assert loaded is not None
     assert loaded.cmd == "echo second"
+
+
+def test_validate_new_key_invalid_key():
+    assert _validate_new_key("bad key") is False
+    assert _validate_new_key("") is False
+
+
+def test_validate_new_key_existing():
+    store.save(Command(key="existing", cmd="echo hi"))
+    assert _validate_new_key("existing") is False
+
+
+def test_validate_new_key_valid():
+    assert _validate_new_key("brand-new") is True
+
+
+def test_validate_key_valid():
+    assert _validate_key("git-status") is True
+    assert _validate_key("my_cmd") is True
+    assert _validate_key("cmd123") is True
+
+
+def test_validate_key_with_space():
+    assert _validate_key("git status") is False
+    assert _validate_key(" leading") is False
+    assert _validate_key("trailing ") is False
+
+
+def test_validate_key_empty():
+    assert _validate_key("") is False

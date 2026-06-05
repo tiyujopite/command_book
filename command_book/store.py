@@ -17,6 +17,14 @@ def _validate_key(value: str) -> bool:
     return " " not in value
 
 
+def _validate_new_key(value: str) -> bool:
+    if not _validate_key(value):
+        return False
+    if load_one(value) is not None:
+        return False
+    return True
+
+
 def _load_raw() -> dict[str, dict]:
     if not COMMANDS_FILE.exists():
         return {}

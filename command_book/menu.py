@@ -6,23 +6,8 @@ from rich.console import Console
 
 from command_book import runner, store
 from command_book.i18n import _
-from command_book.models import Command
 
 console = Console()
-
-
-def _ask_params(command: Command) -> dict[str, str]:
-    values: dict[str, str] = {}
-    for param in command.params():
-        if param.required:
-            prompt = f"{param.name} {_('param_required')}"
-        else:
-            prompt = f"{param.name} [{param.default}]"
-        value: str = inquirer.text(message=prompt + ":").execute()
-        if not value and not param.required:
-            value = param.default or ""
-        values[param.name] = value
-    return values
 
 
 def run_menu() -> None:
@@ -35,7 +20,7 @@ def run_menu() -> None:
 
     choices = [Choice(
             value=cmd.key,
-            name=f"{cmd.key:<20} {cmd.description:<35} {', '.join(cmd.tags)}",
+            name=f"{cmd.key:<20} {cmd.cmd:<40}\n{'':<30}{cmd.description}",
             ) for cmd in commands]
 
     selected_key: str | None = inquirer.fuzzy(
@@ -53,7 +38,7 @@ def run_menu() -> None:
     if params:
         console.print(f"\n[bold]{selected.key}[/bold] {_('menu_fill_params')}")
         console.rule()
-        values = _ask_params(selected)
+        values = runner.ask_params(selected)
     else:
         values = {}
 

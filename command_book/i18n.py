@@ -8,12 +8,13 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "app_help": "Command Book — save and run commands with interactive parameters.",  # noqa
         # add
         "add_help": "Register a new command interactively.",
-        "add_prompt_key": "Key name (slug):",
-        "add_prompt_cmd": "Full command (use {{param}} or {{param::default}} for parameters):",  # noqa
+        "add_prompt_key": "Key (slug):",
+        "add_prompt_cmd": "Commad:",
+        "add_example_cmd": "Example: echo {{greeting::hello}} {{required_name!}} {{optional_text}}",  # noqa
         "add_prompt_description": "Short description:",
         "add_prompt_tags": "Tags (comma-separated):",
         "add_saved": "✔ Command '{key}' saved.",
-        "key_invalid": "Key is required and cannot contain spaces.",
+        "key_invalid": "Must be unique, required and without spaces!",
         # list
         "list_help": "List all saved commands.",
         "list_empty": "No commands saved.",
@@ -21,22 +22,22 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "col_description": "DESCRIPTION",
         "col_tags": "TAGS",
         # run
-        "run_help": "Run a command by name.",
-        "run_arg_help": "Name of the command to run",
-        "run_not_found": "Command '{name}' not found.",
-        "param_required": "(required)",
+        "run_help": "Run a command by key.",
+        "required": "required",
+        "run_arg_help": "Key of the command to run",
+        "run_not_found": "Command '{key}' not found.",
         "run_executing": "✔ Running:",
         # remove
         "remove_help": "Delete a command.",
-        "remove_arg_help": "Name of the command to delete",
-        "remove_deleted": "✔ Command '{name}' deleted.",
-        "remove_not_found": "Command '{name}' not found.",
+        "remove_arg_help": "Key of the command to delete",
+        "remove_deleted": "✔ Command '{key}' deleted.",
+        "remove_not_found": "Command '{key}' not found.",
         # edit
         "edit_help": "Edit an existing command interactively.",
         "edit_arg_help": "Name of the command to edit",
         "edit_saved": "✔ Command '{key}' updated.",
         # search
-        "search_help": "Filter commands by name, description or tag.",
+        "search_help": "Filter commands by any field.",
         "search_arg_help": "Search term",
         "search_no_results": "No results for '{term}'.",
         # tags
@@ -58,11 +59,12 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         # add
         "add_help": "Registra un nuevo comando de forma interactiva.",
         "add_prompt_key": "Nombre clave (slug):",
-        "add_prompt_cmd": "Comando completo (usa {{param}} o {{param::default}} para parámetros):",  # noqa
+        "add_prompt_cmd": "Comando:",
+        "add_example_cmd": "Ejemplo: echo {{greeting::hello}} {{required_name}!} {{optional_text}}",  # noqa
         "add_prompt_description": "Descripción breve:",
         "add_prompt_tags": "Tags (separados por coma):",
         "add_saved": "✔ Comando '{key}' guardado.",
-        "key_invalid": "La clave es obligatoria y no puede contener espacios.",
+        "key_invalid": "Debe ser única, requerida y sin espacios!",
         # list
         "list_help": "Lista todos los comandos guardados.",
         "list_empty": "No hay comandos guardados.",
@@ -70,22 +72,22 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "col_description": "DESCRIPCIÓN",
         "col_tags": "TAGS",
         # run
-        "run_help": "Ejecuta un comando por su nombre.",
-        "run_arg_help": "Nombre del comando a ejecutar",
-        "run_not_found": "Comando '{name}' no encontrado.",
-        "param_required": "(requerido)",
+        "run_help": "Ejecuta un comando por su clave.",
+        "required": "requerido",
+        "run_arg_help": "Clave del comando a ejecutar",
+        "run_not_found": "Comando '{key}' no encontrado.",
         "run_executing": "✔ Ejecutando:",
         # remove
         "remove_help": "Elimina un comando.",
-        "remove_arg_help": "Nombre del comando a eliminar",
-        "remove_deleted": "✔ Comando '{name}' eliminado.",
-        "remove_not_found": "Comando '{name}' no encontrado.",
+        "remove_arg_help": "Clave del comando a eliminar",
+        "remove_deleted": "✔ Comando '{key}' eliminado.",
+        "remove_not_found": "Comando '{key}' no encontrado.",
         # edit
         "edit_help": "Edita un comando existente de forma interactiva.",
-        "edit_arg_help": "Nombre del comando a editar",
+        "edit_arg_help": "Clave del comando a editar",
         "edit_saved": "✔ Comando '{key}' actualizado.",
         # search
-        "search_help": "Filtra comandos por nombre, descripción o tag.",
+        "search_help": "Filtra comandos por todos sus campos.",
         "search_arg_help": "Término de búsqueda",
         "search_no_results": "Sin resultados para '{term}'.",
         # tags

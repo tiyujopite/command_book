@@ -5,7 +5,7 @@ from typer.testing import CliRunner as TyperRunner
 
 import command_book.cli as cli_module
 from command_book import store
-from command_book.cli import _complete_key, _validate_key, app
+from command_book.cli import _complete_key, app
 from command_book.models import Command
 
 typer_runner = TyperRunner()
@@ -19,22 +19,6 @@ def tmp_config(tmp_path, monkeypatch):
     monkeypatch.setattr(store, "COMMANDS_FILE", commands_file)
     monkeypatch.setattr(cli_module, "CONFIG_DIR", config_dir)
     monkeypatch.setattr(cli_module, "COMMANDS_FILE", commands_file)
-
-
-def test_validate_key_no_spaces():
-    assert _validate_key("git-status") is True
-    assert _validate_key("my_cmd") is True
-    assert _validate_key("cmd123") is True
-
-
-def test_validate_key_with_space():
-    assert _validate_key("git status") is False
-    assert _validate_key(" leading") is False
-    assert _validate_key("trailing ") is False
-
-
-def test_validate_key_empty():
-    assert _validate_key("") is False
 
 
 def test_complete_key_matches():
@@ -121,7 +105,7 @@ def _text_mock(side_effects: list) -> MagicMock:
     return m
 
 
-def test_add_command():
+def test_add():
     text_mock = _text_mock(["new-cmd", "echo hello", "A", "tag1, tag2"])
     with patch("InquirerPy.inquirer.text", text_mock):
         result = typer_runner.invoke(app, ["add"])
@@ -132,7 +116,7 @@ def test_add_command():
     assert saved.tags == ["tag1", "tag2"]
 
 
-def test_add_command_no_tags():
+def test_add_no_tags():
     text_mock = _text_mock(["simple-cmd", "ls -la", "List files", ""])
     with patch("InquirerPy.inquirer.text", text_mock):
         result = typer_runner.invoke(app, ["add"])
@@ -155,7 +139,7 @@ def test_run_no_params():
 
 
 def test_run_with_required_param():
-    store.save(Command(key="ssh-cmd", cmd="ssh {{host}}"))
+    store.save(Command(key="ssh-cmd", cmd="ssh {{host}!}"))
     text_mock = _text_mock(["myserver"])
     with patch("InquirerPy.inquirer.text", text_mock), \
          patch("command_book.runner.execute", return_value=0):
@@ -182,7 +166,7 @@ def test_edit_not_found():
 
 def test_edit_same_key():
     store.save(Command(key="orig", cmd="echo old", description="Old"))
-    text_mock = _text_mock(["orig", "echo new", "New desc", "y"])
+    text_mock = _text_mock(["echo new", "New desc", "y"])
     with patch("InquirerPy.inquirer.text", text_mock):
         result = typer_runner.invoke(app, ["edit", "orig"])
     assert result.exit_code == 0
@@ -191,16 +175,6 @@ def test_edit_same_key():
     assert updated.cmd == "echo new"
     assert updated.description == "New desc"
     assert updated.tags == ["y"]
-
-
-def test_edit_rename_key():
-    store.save(Command(key="old-name", cmd="echo hi"))
-    text_mock = _text_mock(["new-name", "echo hi", "", ""])
-    with patch("InquirerPy.inquirer.text", text_mock):
-        result = typer_runner.invoke(app, ["edit", "old-name"])
-    assert result.exit_code == 0
-    assert store.load_one("old-name") is None
-    assert store.load_one("new-name") is not None
 
 
 def test_config_creates_file_if_missing(tmp_path):

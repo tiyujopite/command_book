@@ -1,7 +1,7 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from command_book.models import Param
-from command_book.runner import execute, resolve
+from command_book.models import Command, Param
+from command_book.runner import ask_params, execute, resolve
 
 
 def test_resolve_no_params():
@@ -59,3 +59,39 @@ def test_execute_returns_nonzero():
     with patch("subprocess.run") as mock_run:
         mock_run.return_value.returncode = 1
         assert execute("false") == 1
+
+
+def test_ask_params_required():
+    cmd = Command(key="test", cmd="ssh {{host}!}")
+    text_mock = MagicMock()
+    text_mock.return_value.execute.side_effect = ["", "localhost"]
+    with patch("command_book.runner.inquirer.text", text_mock):
+        values = ask_params(cmd)
+    assert values == {"host": "localhost"}
+
+
+def test_ask_params_optional_empty_uses_default():
+    cmd = Command(key="test", cmd="ssh -p {{port::22}}")
+    text_mock = MagicMock()
+    text_mock.return_value.execute.return_value = ""
+    with patch("command_book.runner.inquirer.text", text_mock):
+        values = ask_params(cmd)
+    assert values == {"port": "22"}
+
+
+def test_ask_params_optional_with_value():
+    cmd = Command(key="test", cmd="ssh -p {{port::22}}")
+    text_mock = MagicMock()
+    text_mock.return_value.execute.return_value = "2222"
+    with patch("command_book.runner.inquirer.text", text_mock):
+        values = ask_params(cmd)
+    assert values == {"port": "2222"}
+
+
+def test_ask_params_no_params():
+    cmd = Command(key="test", cmd="ssh {{host}}")
+    text_mock = MagicMock()
+    text_mock.return_value.execute.return_value = "myserver"
+    with patch("command_book.runner.inquirer.text", text_mock):
+        values = ask_params(cmd)
+    assert values == {"host": "myserver"}

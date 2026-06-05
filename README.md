@@ -27,7 +27,7 @@ bb --install-completion # Install shell completion
 
 ## Command format
 
-Commands use placeholders `{{name}}` or `{{name::default}}`:
+Commands use placeholders `{{name}}`, `{{name::default}}`, `{{name_required}!}` or `{{name_required::default}!}`.
 
 ```toml
 [commands.ssh-server]
@@ -57,6 +57,8 @@ git clone https://github.com/tiyujopite/command_book
 cd command-book
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest --cov=command_book   # Run tests with coverage
-flake8 command_book/        # Linting
+# Run tests with coverage
+pytest --cov=command_book --cov-report=term-missing
+# Linting
+flake8 command_book/
 ```
