@@ -11,7 +11,7 @@ from command_book import runner, store
 from command_book.i18n import _
 from command_book.menu import run_menu
 from command_book.models import Command
-from command_book.store import COMMANDS_FILE, CONFIG_DIR, _validate_key
+from command_book.store import COMMANDS_FILE, CONFIG_DIR, _validate_new_key
 
 app = typer.Typer(
     name="bb",
@@ -27,8 +27,25 @@ def _complete_key(incomplete: str) -> list[str]:
     return [cmd.key for cmd in commands if cmd.key.startswith(incomplete)]
 
 
-def _name_arg(help: str) -> typer.Argument:
+def _key_arg(help: str) -> typer.Argument:
     return typer.Argument(..., help=help, autocompletion=_complete_key)
+
+
+def _build_commands_table(commands: list[Command]) -> Table:
+    table = Table(show_header=True, header_style="bold", show_lines=True,
+        expand=True)
+    table.add_column(_("col_key"), style="cyan")
+    table.add_column(_("col_description"))
+    table.add_column(_("col_tags"), style="dim")
+    for cmd in commands:
+        desc = (
+            f"\n[italic]{cmd.description}[/italic]" if cmd.description else "")
+        table.add_row(
+            cmd.key,
+            cmd.pretty() + desc,
+            ", ".join(cmd.tags)
+            )
+    return table
 
 
 @app.callback(invoke_without_command=True)
@@ -39,11 +56,14 @@ def main(ctx: typer.Context) -> None:
 
 @app.command(help=_("add_help"))
 def add() -> None:
-    key: str = inquirer.text(
-        message=_("add_prompt_key"),
-        validate=_validate_key,
-        invalid_message=_("key_invalid"),
-        ).execute()
+    key: str = ''
+    while not key:
+        key: str = inquirer.text(
+            message=_("add_prompt_key"),
+            validate=_validate_new_key,
+            invalid_message=_("key_invalid"),
+            ).execute()
+    console.print(Command(key="example", cmd=_("add_example_cmd")).pretty())
     cmd: str = inquirer.text(message=_("add_prompt_cmd")).execute()
     description: str = inquirer.text(
         message=_("add_prompt_description")).execute()
@@ -62,67 +82,40 @@ def list_commands() -> None:
         console.print(f"[yellow]{_('list_empty')}[/yellow]")
         return
 
-    table = Table(show_header=True, header_style="bold")
-    table.add_column(_("col_key"), style="cyan")
-    table.add_column(_("col_description"))
-    table.add_column(_("col_tags"), style="dim")
-
-    for cmd in commands:
-        table.add_row(cmd.key, cmd.description, ", ".join(cmd.tags))
-
-    console.print(table)
+    console.print(_build_commands_table(commands))
 
 
 @app.command(help=_("run_help"))
-def run(name: str = _name_arg(_("run_arg_help"))) -> None:
-    command = store.load_one(name)
+def run(key: str = _key_arg(_("run_arg_help"))) -> None:
+    command = store.load_one(key)
     if command is None:
-        console.print(f"[red]{_('run_not_found').format(name=name)}[/red]")
+        console.print(f"[red]{_('run_not_found').format(key=key)}[/red]")
         raise typer.Exit(1)
 
-    params = command.params()
-    values: dict[str, str] = {}
-    for param in params:
-        if param.required:
-            prompt = f"{param.name} {_('param_required')}"
-        else:
-            prompt = f"{param.name} [{param.default}]"
-        value: str = inquirer.text(message=prompt + ":").execute()
-        if not value and not param.required:
-            value = param.default or ""
-        values[param.name] = value
-
-    resolved = runner.resolve(command.cmd, params, values)
+    values = runner.ask_params(command)
+    resolved = runner.resolve(command.cmd, command.params(), values)
     console.print(f"[green]{_('run_executing')}[/green] {resolved}")
     runner.execute(resolved)
 
 
 @app.command(help=_("remove_help"))
-def remove(name: str = _name_arg(_("remove_arg_help"))) -> None:
-    if store.remove(name):
+def remove(key: str = _key_arg(_("remove_arg_help"))) -> None:
+    if store.remove(key):
         console.print(
-            f"[green]{_('remove_deleted').format(name=name)}[/green]")
+            f"[green]{_('remove_deleted').format(key=key)}[/green]")
     else:
         console.print(
-            f"[red]{_('remove_not_found').format(name=name)}[/red]")
+            f"[red]{_('remove_not_found').format(key=key)}[/red]")
         raise typer.Exit(1)
 
 
 @app.command(help=_("edit_help"))
-def edit(name: str = _name_arg(_("edit_arg_help"))) -> None:
-    from InquirerPy import inquirer
-
-    command = store.load_one(name)
+def edit(key: str = _key_arg(_("edit_arg_help"))) -> None:
+    command = store.load_one(key)
     if command is None:
-        console.print(f"[red]{_('run_not_found').format(name=name)}[/red]")
+        console.print(f"[red]{_('run_not_found').format(key=key)}[/red]")
         raise typer.Exit(1)
 
-    key: str = inquirer.text(
-        message=_("add_prompt_key"),
-        default=command.key,
-        validate=_validate_key,
-        invalid_message=_("key_invalid"),
-        ).execute()
     cmd: str = inquirer.text(
         message=_("add_prompt_cmd"), default=command.cmd).execute()
     description: str = inquirer.text(
@@ -132,9 +125,6 @@ def edit(name: str = _name_arg(_("edit_arg_help"))) -> None:
         message=_("add_prompt_tags"), default=", ".join(command.tags)
         ).execute()
     tags = [t.strip() for t in tags_raw.split(",") if t.strip()]
-
-    if key != name:
-        store.remove(name)
 
     updated = Command(key=key, cmd=cmd, description=description, tags=tags)
     store.save(updated)
@@ -149,6 +139,7 @@ def search(term: str = typer.Argument(..., help=_("search_arg_help"))) -> None:
         cmd
         for cmd in commands
         if term in cmd.key.lower()
+        or term in cmd.cmd.lower()
         or term in cmd.description.lower()
         or any(term in tag.lower() for tag in cmd.tags)
         ]
@@ -158,17 +149,7 @@ def search(term: str = typer.Argument(..., help=_("search_arg_help"))) -> None:
             f"[yellow]{_('search_no_results').format(term=term)}[/yellow]")
         return
 
-    table = Table(show_header=True, header_style="bold")
-    table.add_column(_("col_key"), style="cyan")
-    table.add_column(_("col_description"))
-    table.add_column(_("col_tags"), style="dim")
-
-    for cmd in results:
-        table.add_row(cmd.key, cmd.description, ", ".join(cmd.tags))
-
-    console.print(table)
-
-    console.print(table)
+    console.print(_build_commands_table(results))
 
 
 @app.command(help=_("tags_help"))

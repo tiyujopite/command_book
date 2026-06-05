@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from command_book import store
-from command_book.menu import _ask_params, run_menu
+from command_book.menu import run_menu
 from command_book.models import Command
 
 
@@ -12,33 +12,6 @@ def tmp_config(tmp_path, monkeypatch):
     monkeypatch.setattr(store, "CONFIG_DIR", tmp_path / "command_book")
     monkeypatch.setattr(
         store, "COMMANDS_FILE", tmp_path / "command_book" / "commands.toml")
-
-
-def test_ask_params_required():
-    cmd = Command(key="test", cmd="ssh {{host}}")
-    text_mock = MagicMock()
-    text_mock.return_value.execute.return_value = "myserver"
-    with patch("command_book.menu.inquirer.text", text_mock):
-        values = _ask_params(cmd)
-    assert values == {"host": "myserver"}
-
-
-def test_ask_params_optional_with_value():
-    cmd = Command(key="test", cmd="ssh -p {{port::22}}")
-    text_mock = MagicMock()
-    text_mock.return_value.execute.return_value = "2222"
-    with patch("command_book.menu.inquirer.text", text_mock):
-        values = _ask_params(cmd)
-    assert values == {"port": "2222"}
-
-
-def test_ask_params_optional_empty_uses_default():
-    cmd = Command(key="test", cmd="ssh -p {{port::22}}")
-    text_mock = MagicMock()
-    text_mock.return_value.execute.return_value = ""
-    with patch("command_book.menu.inquirer.text", text_mock):
-        values = _ask_params(cmd)
-    assert values == {"port": "22"}
 
 
 def test_run_menu_empty():

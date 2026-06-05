@@ -1,16 +1,6 @@
 from command_book.models import Command, Param
 
 
-def test_param_required():
-    p = Param(name="host")
-    assert p.required is True
-
-
-def test_param_not_required():
-    p = Param(name="port", default="22")
-    assert p.required is False
-
-
 def test_command_params_no_defaults():
     cmd = Command(key="test", cmd="ssh {{user}}@{{host}}")
     params = cmd.params()
@@ -26,6 +16,15 @@ def test_command_params_with_defaults():
     assert params[0] == Param(name="user", default="root")
     assert params[1] == Param(name="host", default=None)
     assert params[2] == Param(name="port", default="22")
+
+
+def test_command_params_required():
+    cmd_text = "ssh {{user::root}!}@{{host}!} -p {{port::22}!}"
+    cmd = Command(key="test", cmd=cmd_text)
+    params = cmd.params()
+    assert params[0] == Param(name="user", default="root", required=True)
+    assert params[1] == Param(name="host", default=None, required=True)
+    assert params[2] == Param(name="port", default="22", required=True)
 
 
 def test_command_params_empty():
