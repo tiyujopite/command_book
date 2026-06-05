@@ -1,0 +1,42 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "command-book"
+version = "0.1.0"
+description = "CLI to save and run commands with interactive parameters"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+keywords = ["cli", "commands", "productivity", "terminal"]
+dependencies = [
+    "typer>=0.12",
+    "InquirerPy>=0.3",
+    "rich>=13",
+    "tomli-w>=1.0",
+]
+
+authors = [
+  {name = "José Antonio Díaz Miralles", email = "tiyujopite1@gmail.com"},
+]
+
+[project.urls]
+Homepage = "https://github.com/tiyujopite/command_book"
+
+[project.scripts]
+bb = "command_book.cli:app"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-cov",
+    "flake8>=7",
+]
+
+[tool.hatch.envs.default]
+dependencies = [
+    "pytest",
+    "pytest-cov",
+    "flake8",
+]
