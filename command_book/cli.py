@@ -64,7 +64,9 @@ def add() -> None:
             invalid_message=_("key_invalid"),
             ).execute()
     console.print(Command(key="example", cmd=_("add_example_cmd")).pretty())
-    cmd: str = inquirer.text(message=_("add_prompt_cmd")).execute()
+    cmd: str = inquirer.text(message=_("add_prompt_cmd"), multiline=True,
+        ).execute()
+    cmd = cmd.rstrip("\n")
     description: str = inquirer.text(
         message=_("add_prompt_description")).execute()
     tags_raw: str = inquirer.text(message=_("add_prompt_tags")).execute()
@@ -95,6 +97,7 @@ def run(key: str = _key_arg(_("run_arg_help"))) -> None:
     values = runner.ask_params(command)
     resolved = runner.resolve(command.cmd, command.params(), values)
     console.print(f"[green]{_('run_executing')}[/green] {resolved}")
+    console.print(f"[green]{'-' * 50}[/green]")
     runner.execute(resolved)
 
 
@@ -116,8 +119,9 @@ def edit(key: str = _key_arg(_("edit_arg_help"))) -> None:
         console.print(f"[red]{_('run_not_found').format(key=key)}[/red]")
         raise typer.Exit(1)
 
-    cmd: str = inquirer.text(
-        message=_("add_prompt_cmd"), default=command.cmd).execute()
+    cmd: str = inquirer.text(message=_("add_prompt_cmd"), multiline=True,
+        ).execute()
+    cmd = cmd.rstrip("\n")
     description: str = inquirer.text(
         message=_("add_prompt_description"), default=command.description
         ).execute()
