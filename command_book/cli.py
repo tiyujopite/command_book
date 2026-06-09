@@ -4,14 +4,14 @@ import os
 
 import typer
 from InquirerPy import inquirer
+from InquirerPy.base.control import Choice
 from rich.console import Console
 from rich.table import Table
 
 from command_book import runner, store
 from command_book.i18n import _
-from command_book.menu import run_menu
 from command_book.models import Command
-from command_book.store import COMMANDS_FILE, CONFIG_DIR, _validate_new_key
+from command_book.store import COMMANDS_FILE, CONFIG_DIR
 
 app = typer.Typer(
     name="bb",
@@ -39,42 +39,52 @@ def _build_commands_table(commands: list[Command]) -> Table:
     table.add_column(_("col_tags"), style="dim")
     for cmd in commands:
         desc = (
-            f"\n[italic]{cmd.description}[/italic]" if cmd.description else "")
+            f"[cyan][italic]{cmd.description}[/italic][/cyan]\n"
+            if cmd.description else "")
         table.add_row(
             cmd.key,
-            cmd.pretty() + desc,
+            desc + cmd.pretty(),
             ", ".join(cmd.tags)
             )
     return table
 
 
 @app.callback(invoke_without_command=True)
-def main(ctx: typer.Context) -> None:
-    if ctx.invoked_subcommand is None:
-        run_menu()  # pragma: no cover
+def main(ctx: typer.Context) -> None:  # pragma: no cover
+    if ctx.invoked_subcommand is not None:
+        return
+    commands = store.load_all()
+    if not commands:
+        console.print(f"[yellow]{_('menu_empty')}[/yellow]")
+        return
+
+    cmd_map = {cmd.key: cmd for cmd in commands}
+
+    choices = []
+    for cmd in commands:
+        name = f"{cmd.key:<25} {cmd.description:<50}"
+        for cmd_part in cmd.cmd.splitlines():
+            name += f"\n{'':<25}{cmd_part}"
+        choices.append(Choice(value=cmd.key, name=name))
+    choices.append(Choice(value=None, name=f"{_('menu_exit')}"))
+
+    selected_key: str | None = inquirer.fuzzy(
+        message=_("menu_title"),
+        choices=choices,
+        max_height="70%",
+        instruction=_("menu_instruction"),
+        ).execute()
+
+    if selected_key is None:
+        return
+
+    selected = cmd_map[selected_key]
+    runner.execute_command(selected)
 
 
 @app.command(help=_("add_help"))
 def add() -> None:
-    key: str = ''
-    while not key:
-        key: str = inquirer.text(
-            message=_("add_prompt_key"),
-            validate=_validate_new_key,
-            invalid_message=_("key_invalid"),
-            ).execute()
-    console.print(Command(key="example", cmd=_("add_example_cmd")).pretty())
-    cmd: str = inquirer.text(message=_("add_prompt_cmd"), multiline=True,
-        ).execute()
-    cmd = cmd.rstrip("\n")
-    description: str = inquirer.text(
-        message=_("add_prompt_description")).execute()
-    tags_raw: str = inquirer.text(message=_("add_prompt_tags")).execute()
-    tags = [t.strip() for t in tags_raw.split(",") if t.strip()]
-
-    command = Command(key=key, cmd=cmd, description=description, tags=tags)
-    store.save(command)
-    console.print(f"[green]{_('add_saved').format(key=key)}[/green]")
+    store.add_edit(None)
 
 
 @app.command("list", help=_("list_help"))
@@ -94,11 +104,7 @@ def run(key: str = _key_arg(_("run_arg_help"))) -> None:
         console.print(f"[red]{_('run_not_found').format(key=key)}[/red]")
         raise typer.Exit(1)
 
-    values = runner.ask_params(command)
-    resolved = runner.resolve(command.cmd, command.params(), values)
-    console.print(f"[green]{_('run_executing')}[/green] {resolved}")
-    console.print(f"[green]{'-' * 50}[/green]")
-    runner.execute(resolved)
+    runner.execute_command(command)
 
 
 @app.command(help=_("remove_help"))
@@ -114,26 +120,7 @@ def remove(key: str = _key_arg(_("remove_arg_help"))) -> None:
 
 @app.command(help=_("edit_help"))
 def edit(key: str = _key_arg(_("edit_arg_help"))) -> None:
-    command = store.load_one(key)
-    if command is None:
-        console.print(f"[red]{_('run_not_found').format(key=key)}[/red]")
-        raise typer.Exit(1)
-
-    cmd: str = inquirer.text(message=_("add_prompt_cmd"), multiline=True,
-        default=command.cmd
-        ).execute()
-    cmd = cmd.rstrip("\n")
-    description: str = inquirer.text(
-        message=_("add_prompt_description"), default=command.description
-        ).execute()
-    tags_raw: str = inquirer.text(
-        message=_("add_prompt_tags"), default=", ".join(command.tags)
-        ).execute()
-    tags = [t.strip() for t in tags_raw.split(",") if t.strip()]
-
-    updated = Command(key=key, cmd=cmd, description=description, tags=tags)
-    store.save(updated)
-    console.print(f"[green]{_('edit_saved').format(key=key)}[/green]")
+    store.add_edit(key)
 
 
 @app.command(help=_("search_help"))

@@ -13,10 +13,9 @@ from command_book.models import Command, Param
 console = Console()
 
 
-def ask_params(command: Command) -> dict[str, str]:
+def _ask_params(params: list[Param]) -> dict[str, str]:
     values: dict[str, str] = {}
-    console.print(f"> {command.pretty()}")
-    for param in command.params():
+    for param in params:
         prompt = param.name
         if param.default:
             prompt += f" [{param.default}]"
@@ -33,7 +32,7 @@ def ask_params(command: Command) -> dict[str, str]:
     return values
 
 
-def resolve(cmd: str, params: list[Param], values: dict[str, str]) -> str:
+def _resolve(cmd: str, params: list[Param], values: dict[str, str]) -> str:
     """Replace placeholders with the provided values."""
 
     def replacer(match: re.Match) -> str:
@@ -43,8 +42,23 @@ def resolve(cmd: str, params: list[Param], values: dict[str, str]) -> str:
     return re.sub(r"\{\{(\w+)(?:::([^}]*))?\}(!?)\}", replacer, cmd)
 
 
-def execute(cmd: str) -> int:
+def _execute(cmd: str) -> int:
     """Run the command in the system shell."""
     executable = os.environ.get("SHELL", "/bin/sh") or None
     result = subprocess.run(cmd, shell=True, executable=executable)
     return result.returncode
+
+
+def execute_command(command: Command) -> None:
+    """Ask for parameters, resolve the command and execute it."""
+    console.print(f"\n[cyan][bold]{command.key}[/bold][/cyan]")
+    console.print(f"→ {command.pretty()}")
+    params = command.params()
+    values = []
+    if params:
+        values = _ask_params(params)
+        console.rule()
+    resolved = _resolve(command.cmd, params, values)
+    console.print(f"[green]{_('run_executing')}[/green] {resolved}")
+    console.rule()
+    _execute(resolved)

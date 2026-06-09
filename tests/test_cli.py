@@ -133,7 +133,7 @@ def test_run_not_found():
 
 def test_run_no_params():
     store.save(Command(key="simple", cmd="echo hi"))
-    with patch("command_book.runner.execute", return_value=0):
+    with patch("command_book.runner._execute", return_value=0):
         result = typer_runner.invoke(app, ["run", "simple"])
     assert result.exit_code == 0
 
@@ -142,7 +142,7 @@ def test_run_with_required_param():
     store.save(Command(key="ssh-cmd", cmd="ssh {{host}!}"))
     text_mock = _text_mock(["myserver"])
     with patch("InquirerPy.inquirer.text", text_mock), \
-         patch("command_book.runner.execute", return_value=0):
+         patch("command_book.runner._execute", return_value=0):
         result = typer_runner.invoke(app, ["run", "ssh-cmd"])
     assert result.exit_code == 0
     assert "myserver" in result.output
@@ -153,7 +153,7 @@ def test_run_with_optional_param_uses_default():
     # host filled, port skipped → uses default
     text_mock = _text_mock(["myserver", ""])
     with patch("InquirerPy.inquirer.text", text_mock), \
-         patch("command_book.runner.execute", return_value=0):
+         patch("command_book.runner._execute", return_value=0):
         result = typer_runner.invoke(app, ["run", "ssh-def"])
     assert result.exit_code == 0
     assert "22" in result.output

@@ -51,7 +51,7 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "menu_empty": "No commands saved. Use `bb add` to add one.",
         "menu_title": "Command Book",
         "menu_instruction": "[↑↓] navigate  [enter] select  [esc] quit",
-        "menu_fill_params": "→ Fill in parameters",
+        "menu_exit": "EXIT",
         },
     "es": {
         # app
@@ -101,7 +101,7 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "menu_empty": "No hay comandos guardados. Usa `bb add` para añadir uno.",  # noqa
         "menu_title": "Command Book",
         "menu_instruction": "[↑↓] navegar  [enter] seleccionar  [esc] salir",
-        "menu_fill_params": "→ Completar parámetros",
+        "menu_cancel": "SALIR",
         },
     }
 
