@@ -120,6 +120,7 @@ def edit(key: str = _key_arg(_("edit_arg_help"))) -> None:
         raise typer.Exit(1)
 
     cmd: str = inquirer.text(message=_("add_prompt_cmd"), multiline=True,
+        default=command.cmd
         ).execute()
     cmd = cmd.rstrip("\n")
     description: str = inquirer.text(
