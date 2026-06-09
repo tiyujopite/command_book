@@ -52,13 +52,20 @@ CB_LANG=es bb   # Spanish
 
 ## Development
 
+### Install
 ```bash
 git clone https://github.com/tiyujopite/command_book
 cd command-book
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-# Run tests with coverage
+```
+
+### Run tests
+```bash
 pytest --cov=command_book --cov-report=term-missing
-# Linting
+```
+
+### Linting
+```bash
 flake8 command_book/
 ```
