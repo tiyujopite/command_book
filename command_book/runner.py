@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 
@@ -44,5 +45,6 @@ def resolve(cmd: str, params: list[Param], values: dict[str, str]) -> str:
 
 def execute(cmd: str) -> int:
     """Run the command in the system shell."""
-    result = subprocess.run(cmd, shell=True)
+    executable = os.environ.get("SHELL", "/bin/sh") or None
+    result = subprocess.run(cmd, shell=True, executable=executable)
     return result.returncode
