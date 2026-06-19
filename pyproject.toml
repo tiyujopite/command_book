@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "command-book"
-version = "8.1.0.dev0"
+version = "8.1.0"
 description = "CLI to save and run commands with interactive parameters"
 readme = "README.md"
 requires-python = ">=3.11"
