@@ -87,7 +87,7 @@ def main(ctx: typer.Context) -> None:  # pragma: no cover
 @app.command(help=_("add_help"))
 def add() -> None:
     if store.add_edit(None):
-        console.print(f"[green]{_('add_saved').format(key='')}[/green]")
+        console.print(f"[green]{_('add_saved')}[/green]")
 
 
 @app.command("list", help=_("list_help"))
