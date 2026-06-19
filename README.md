@@ -22,12 +22,14 @@ bb edit <name>          # Open the command in $EDITOR
 bb search <term>        # Search by name, description or tag
 bb tags                 # List all available tags
 bb config               # Show or edit the config file
+bb examples             # Show examples
 bb --install-completion # Install shell completion
 ```
+<p align="center"><img src="./assets/demo.gif" alt="Demo"></p>
 
 ## Command format
 
-Commands use placeholders `{{name}}`, `{{name::default}}`, `{{name_required}!}` or `{{name_required::default}!}`.
+Commands use placeholders `{{name}}`, `{{name::default}}`, `{{name_required}!}`,`{{name_required::default}!}` and more.
 
 ```toml
 [commands.ssh-server]
