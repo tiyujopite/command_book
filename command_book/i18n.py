@@ -13,7 +13,7 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "add_example_cmd": "Example: echo {{greeting::hello}} {{required_name!}} {{optional_text}}",  # noqa
         "add_prompt_description": "Short description:",
         "add_prompt_tags": "Tags (comma-separated):",
-        "add_saved": "✔ Command '{key}' saved.",
+        "add_saved": "✔ Command saved.",
         "key_invalid": "Required! Must be unique and without spaces!",
         "add_command_cmd_validate": "Empty or with wrong parameters.",
         # list
@@ -78,7 +78,7 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "add_example_cmd": "Ejemplo: echo {{greeting::hello}} {{required_name}!} {{optional_text}}",  # noqa
         "add_prompt_description": "Descripción breve:",
         "add_prompt_tags": "Tags (separados por coma):",
-        "add_saved": "✔ Comando '{key}' guardado.",
+        "add_saved": "✔ Comando guardado.",
         "key_invalid": "¡Requerido! ¡Debe ser único y sin espacios!",
         "add_command_cmd_validate": "Vacío o con parámentros inválidos.",
         # list
