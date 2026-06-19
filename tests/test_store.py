@@ -1,4 +1,7 @@
+from unittest.mock import patch
+
 import pytest
+import typer
 
 from command_book import store
 from command_book.models import Command
@@ -43,12 +46,23 @@ def test_load_all_multiple():
 
 def test_remove_existing():
     store.save(Command(key="del-me", cmd="echo bye"))
-    assert store.remove("del-me") is True
+    with patch("command_book.store.inquirer.select") as select_mock:
+        select_mock.return_value.execute.return_value = True
+        assert store.remove("del-me") is True
     assert store.load_one("del-me") is None
 
 
+def test_remove_existing_cancelled():
+    store.save(Command(key="del-me", cmd="echo bye"))
+    with patch("command_book.store.inquirer.select") as select_mock:
+        select_mock.return_value.execute.return_value = False
+        assert store.remove("del-me") is False
+    assert store.load_one("del-me") is not None
+
+
 def test_remove_missing():
-    assert store.remove("ghost") is False
+    with pytest.raises(typer.Exit):
+        store.remove("ghost")
 
 
 def test_save_overwrites():
@@ -87,3 +101,9 @@ def test_validate_key_with_space():
 
 def test_validate_key_empty():
     assert _validate_key("") is False
+
+
+def test_validate_new_key_existing_other_key():
+    store.save(Command(key="taken", cmd="echo"))
+    assert store._validate_new_key("taken", editing=None) is False
+    assert store._validate_new_key("taken", editing="taken") is True

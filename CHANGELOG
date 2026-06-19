@@ -1,4 +1,10 @@
-
+* New parameter types: text, path, int, select
+* Escaped parameters with \{{...}}
+* New bb examples command
+* Command panel with run/edit/remove actions in main menu
+* Confirmation prompt on delete
+* Key editable when editing a command
+* Redesigned list panel
 
 8.0.0 - 2026-06-09
 ------------------

@@ -6,12 +6,12 @@ import typer
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 from rich.console import Console
-from rich.table import Table
 
 from command_book import runner, store
 from command_book.i18n import _
-from command_book.models import Command
 from command_book.store import COMMANDS_FILE, CONFIG_DIR
+from command_book.tools import (build_command_panel, build_commands_table,
+                                build_examples_panel)
 
 app = typer.Typer(
     name="bb",
@@ -31,24 +31,6 @@ def _key_arg(help: str) -> typer.Argument:
     return typer.Argument(..., help=help, autocompletion=_complete_key)
 
 
-def _build_commands_table(commands: list[Command]) -> Table:
-    table = Table(show_header=True, header_style="bold", show_lines=True,
-        expand=True)
-    table.add_column(_("col_key"), style="cyan")
-    table.add_column(_("col_description"))
-    table.add_column(_("col_tags"), style="dim")
-    for cmd in commands:
-        desc = (
-            f"[cyan][italic]{cmd.description}[/italic][/cyan]\n"
-            if cmd.description else "")
-        table.add_row(
-            cmd.key,
-            desc + cmd.pretty(),
-            ", ".join(cmd.tags)
-            )
-    return table
-
-
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context) -> None:  # pragma: no cover
     if ctx.invoked_subcommand is not None:
@@ -63,8 +45,6 @@ def main(ctx: typer.Context) -> None:  # pragma: no cover
     choices = []
     for cmd in commands:
         name = f"{cmd.key:<25} {cmd.description:<50}"
-        for cmd_part in cmd.cmd.splitlines():
-            name += f"\n{'':<25}{cmd_part}"
         choices.append(Choice(value=cmd.key, name=name))
     choices.append(Choice(value=None, name=f"{_('menu_exit')}"))
 
@@ -79,12 +59,35 @@ def main(ctx: typer.Context) -> None:  # pragma: no cover
         return
 
     selected = cmd_map[selected_key]
-    runner.execute_command(selected)
+
+    console.print(build_command_panel(selected))
+
+    action: str | None = inquirer.select(
+        message=_("menu_action"),
+        choices=[
+            Choice(value="run", name=_("menu_action_run")),
+            Choice(value="edit", name=_("menu_action_edit")),
+            Choice(value="remove", name=_("menu_action_remove")),
+            Choice(value=None, name=_("menu_exit")),
+            ],
+        default="run",
+        ).execute()
+
+    match action:
+        case "run":
+            run(selected.key)
+        case "edit":
+            edit(selected.key)
+        case "remove":
+            remove(selected.key)
+        case _:
+            return
 
 
 @app.command(help=_("add_help"))
 def add() -> None:
-    store.add_edit(None)
+    if store.add_edit(None):
+        console.print(f"[green]{_('add_saved').format(key='')}[/green]")
 
 
 @app.command("list", help=_("list_help"))
@@ -94,7 +97,7 @@ def list_commands() -> None:
         console.print(f"[yellow]{_('list_empty')}[/yellow]")
         return
 
-    console.print(_build_commands_table(commands))
+    console.print(build_commands_table(commands))
 
 
 @app.command(help=_("run_help"))
@@ -102,25 +105,21 @@ def run(key: str = _key_arg(_("run_arg_help"))) -> None:
     command = store.load_one(key)
     if command is None:
         console.print(f"[red]{_('run_not_found').format(key=key)}[/red]")
-        raise typer.Exit(1)
 
+    console.print(build_command_panel(command))
     runner.execute_command(command)
 
 
 @app.command(help=_("remove_help"))
 def remove(key: str = _key_arg(_("remove_arg_help"))) -> None:
     if store.remove(key):
-        console.print(
-            f"[green]{_('remove_deleted').format(key=key)}[/green]")
-    else:
-        console.print(
-            f"[red]{_('remove_not_found').format(key=key)}[/red]")
-        raise typer.Exit(1)
+        console.print(f"[green]{_('remove_deleted').format(key=key)}[/green]")
 
 
 @app.command(help=_("edit_help"))
 def edit(key: str = _key_arg(_("edit_arg_help"))) -> None:
-    store.add_edit(key)
+    if store.add_edit(key):
+        console.print(f"[green]{_('edit_saved').format(key=key)}[/green]")
 
 
 @app.command(help=_("search_help"))
@@ -141,7 +140,7 @@ def search(term: str = typer.Argument(..., help=_("search_arg_help"))) -> None:
             f"[yellow]{_('search_no_results').format(term=term)}[/yellow]")
         return
 
-    console.print(_build_commands_table(results))
+    console.print(build_commands_table(results))
 
 
 @app.command(help=_("tags_help"))
@@ -172,3 +171,8 @@ def config(
     if edit:  # pragma: no cover
         editor = os.environ.get("EDITOR", "nano")
         os.execlp(editor, editor, str(COMMANDS_FILE))
+
+
+@app.command(help=_("examples_help"))
+def examples() -> None:
+    console.print(build_examples_panel())

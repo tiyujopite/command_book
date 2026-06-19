@@ -6,10 +6,12 @@ from pathlib import Path
 import tomli_w
 import typer
 from InquirerPy import inquirer
+from InquirerPy.base.control import Choice
 from rich.console import Console
 
 from command_book.i18n import _
 from command_book.models import Command
+from command_book.tools import build_examples_panel
 
 CONFIG_DIR = Path.home() / ".config" / "command_book"
 COMMANDS_FILE = CONFIG_DIR / "commands.toml"
@@ -22,12 +24,23 @@ def _validate_key(value: str) -> bool:
     return " " not in value
 
 
-def _validate_new_key(value: str) -> bool:
+def _validate_new_key(value: str, editing: str | None = None) -> bool:
     if not _validate_key(value):
         return False
     if load_one(value) is not None:
+        if value == editing:
+            return True
         return False
     return True
+
+
+def _validate_cmd(cmd: str) -> bool:
+    cmd = cmd.rstrip("\n")
+    try:
+        Command(key="example", cmd=cmd)
+        return True
+    except ValueError:
+        return False
 
 
 def _load_raw() -> dict[str, dict]:
@@ -82,18 +95,30 @@ def save(command: Command) -> None:
     _save_raw(raw)
 
 
-def remove(key: str) -> bool:
+def remove(key: str, force: bool = False) -> bool:
     raw = _load_raw()
     if key not in raw:
-        return False
+        console.print(f"[red]{_('run_not_found').format(key=key)}[/red]")
+        raise typer.Exit(1)
+    if not force:
+        confirmed: str | None = inquirer.select(
+            message=_("remove_confirm").format(key=key),
+            choices=[
+                Choice(value=True, name=_("confirm_yes")),
+                Choice(value=False, name=_("confirm_no")),
+                ],
+            default=False,
+            ).execute()
+        if not confirmed:
+            return False
     del raw[key]
     _save_raw(raw)
     return True
 
 
 def add_edit(key: str | None) -> None:
-    new = key is None
-    if not new:
+    editing = bool(key)
+    if editing:
         command = load_one(key)
         if command is None:
             console.print(f"[red]{_('run_not_found').format(key=key)}[/red]")
@@ -101,22 +126,26 @@ def add_edit(key: str | None) -> None:
         cmd = command.cmd
         description = command.description
         tags = ", ".join(command.tags)
+        old_key = key
     else:
         cmd, description, tags = "", "", ""
+        old_key = None
 
-    while not key:
-        key: str = inquirer.text(
-            message=_("add_prompt_key"),
-            validate=_validate_new_key,
-            invalid_message=_("key_invalid"),
-            ).execute()
-    if new:
-        console.print(
-            Command(key="example", cmd=_("add_example_cmd")).pretty())
+    current_key = key
+    key = inquirer.text(
+        message=_("add_prompt_key"),
+        default=key or "",
+        validate=lambda v: _validate_new_key(v, current_key),
+        invalid_message=_("key_invalid"),
+        ).execute()
+
+    console.print(build_examples_panel())
     cmd = inquirer.text(
-        message=_("add_prompt_cmd"), multiline=True, default=cmd
+        message=_("add_prompt_cmd"), multiline=True, default=cmd,
+        validate=_validate_cmd, invalid_message=_("add_command_cmd_validate"),
         ).execute()
     cmd = cmd.rstrip("\n")
+
     description = inquirer.text(
         message=_("add_prompt_description"), default=description
         ).execute()
@@ -127,4 +156,6 @@ def add_edit(key: str | None) -> None:
 
     command = Command(key=key, cmd=cmd, description=description, tags=tags)
     save(command)
-    console.print(f"[green]{_('add_saved').format(key=key)}[/green]")
+    if editing and old_key != key:
+        remove(old_key, force=True)
+    return True
