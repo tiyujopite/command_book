@@ -1,5 +1,5 @@
 
-8.0.1 - 2026-06-20
+8.1.0 - 2026-06-20
 ------------------
 * New parameter types: text, path, int, select
 * Escaped parameters with \{{...}}
