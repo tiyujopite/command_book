@@ -49,10 +49,11 @@ def test_list_with_commands():
 
 
 def test_remove_existing():
-    store.save(Command(key="del-cmd", cmd="echo bye"))
-    result = typer_runner.invoke(app, ["remove", "del-cmd"])
-    assert result.exit_code == 0
-    assert store.load_one("del-cmd") is None
+    store.save(Command(key="del-me", cmd="echo bye"))
+    with patch("command_book.store.inquirer.select") as select_mock:
+        select_mock.return_value.execute.return_value = True
+        typer_runner.invoke(app, ["remove", "del-me"])
+    assert store.load_one("del-me") is None
 
 
 def test_remove_not_found():
@@ -116,6 +117,31 @@ def test_add():
     assert saved.tags == ["tag1", "tag2"]
 
 
+def test_add_with_param():
+    text_mock = _text_mock(["new-cmd", "echo {{hello}}", "A", ""])
+    with patch("InquirerPy.inquirer.text", text_mock):
+        result = typer_runner.invoke(app, ["add"])
+    assert result.exit_code == 0
+    saved = store.load_one("new-cmd")
+    assert saved is not None
+    assert saved.cmd == "echo {{hello}}"
+
+
+def test_add_with_param_duplicated():
+    text_mock = _text_mock(["new-cmd", "echo {{hello}} {{hello}}", "A", ""])
+    with patch("InquirerPy.inquirer.text", text_mock):
+        result = typer_runner.invoke(app, ["add"])
+    assert result.exit_code == 0
+    saved = store.load_one("new-cmd")
+    assert saved is not None
+    assert saved.cmd == "echo {{hello}} {{hello}}"
+
+
+def test_add_with_wrong_param_duplicated():
+    assert store._validate_cmd("echo {{hello}} {{hello}int}") is False
+    assert store._validate_cmd("echo {{hello}} {{hello}}") is True
+
+
 def test_add_no_tags():
     text_mock = _text_mock(["simple-cmd", "ls -la", "List files", ""])
     with patch("InquirerPy.inquirer.text", text_mock):
@@ -141,7 +167,7 @@ def test_run_no_params():
 def test_run_with_required_param():
     store.save(Command(key="ssh-cmd", cmd="ssh {{host}!}"))
     text_mock = _text_mock(["myserver"])
-    with patch("InquirerPy.inquirer.text", text_mock), \
+    with patch("command_book.runner.inquirer.text", text_mock), \
          patch("command_book.runner._execute", return_value=0):
         result = typer_runner.invoke(app, ["run", "ssh-cmd"])
     assert result.exit_code == 0
@@ -164,17 +190,31 @@ def test_edit_not_found():
     assert result.exit_code == 1
 
 
-def test_edit_same_key():
+def test_edit_change_key():
     store.save(Command(key="orig", cmd="echo old", description="Old"))
-    text_mock = _text_mock(["echo new", "New desc", "y"])
+    text_mock = _text_mock(["orig2", "echo new", "New desc", "y"])
     with patch("InquirerPy.inquirer.text", text_mock):
         result = typer_runner.invoke(app, ["edit", "orig"])
     assert result.exit_code == 0
-    updated = store.load_one("orig")
+    old = store.load_one("orig")
+    assert old is None
+    updated = store.load_one("orig2")
     assert updated is not None
     assert updated.cmd == "echo new"
     assert updated.description == "New desc"
     assert updated.tags == ["y"]
+
+
+def test_edit_used_key():
+    store.save(Command(key="used", cmd="echo hi"))
+    store.save(Command(key="other", cmd="echo other"))
+    # la key se queda igual ("used"), solo cambia el cmd
+    text_mock = _text_mock(["used", "echo new", "New desc", ""])
+    with patch("command_book.store.inquirer.text", text_mock):
+        result = typer_runner.invoke(app, ["edit", "used"])
+    assert result.exit_code == 0
+    assert store.load_one("used") is not None
+    assert store.load_one("used").cmd == "echo new"
 
 
 def test_config_creates_file_if_missing(tmp_path):
@@ -190,3 +230,10 @@ def test_config_shows_path_if_exists():
     result = typer_runner.invoke(app, ["config"])
     assert result.exit_code == 0
     assert str(cli_module.COMMANDS_FILE) in result.output
+
+
+def test_examples():
+    result = typer_runner.invoke(app, ["examples"])
+    assert result.exit_code == 0
+    assert "{{name}}" in result.output
+    assert "{{file}path}" in result.output
