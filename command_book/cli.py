@@ -75,7 +75,7 @@ def main(ctx: typer.Context) -> None:  # pragma: no cover
 
     match action:
         case "run":
-            run(selected.key)
+            run(selected.key, menu=True)
         case "edit":
             edit(selected.key)
         case "remove":
@@ -101,12 +101,13 @@ def list_commands() -> None:
 
 
 @app.command(help=_("run_help"))
-def run(key: str = _key_arg(_("run_arg_help"))) -> None:
+def run(key: str = _key_arg(_("run_arg_help")), menu: bool = False) -> None:
     command = store.load_one(key)
     if command is None:
         console.print(f"[red]{_('run_not_found').format(key=key)}[/red]")
 
-    console.print(build_command_panel(command))
+    if not menu:
+        console.print(build_command_panel(command))
     runner.execute_command(command)
 
 
